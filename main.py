@@ -12,11 +12,32 @@ detect = True
 
 options = "A - Blur\n S - Color\nD- Canny\n F - Blow Out\nG - Blow In\n H - Invert\nJ - Detection On/Off\n Q - Quit\nL - Reset Filters"
 
+
+def nothing(inp):
+    pass
+
+
+cv2.namedWindow("controls")
+
+cv2.createTrackbar("r", "controls", 255, 1, nothing)
+cv2.setTrackbarMax("r", "controls", 255)
+cv2.setTrackbarMin("r", "controls", 0)
+
+cv2.createTrackbar("g", "controls", 0, 1, nothing)
+cv2.setTrackbarMax("g", "controls", 255)
+cv2.setTrackbarMin("g", "controls", 0)
+
+
+cv2.createTrackbar("b", "controls", 0, 1, nothing)
+cv2.setTrackbarMax("b", "controls", 255)
+cv2.setTrackbarMin("b", "controls", 0)
+
+
 while True:
     ret, frame = video_capture.read()
     if not ret:
         break
-    if(detect):
+    if (detect):
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         faces = face_cascade.detectMultiScale(
@@ -34,34 +55,56 @@ while True:
                 colored_face[:, :, 0] += random.randint(0, 180)
                 frame[y:y+h, x:x+w] = colored_face
             elif filter == "blowout":
-                frame[y:y+h, x:x+w] = cv2.dilate(face_region, np.ones((17, 17), dtype=np.uint8))
+                frame[y:y+h, x:x +
+                      w] = cv2.dilate(face_region, np.ones((17, 17), dtype=np.uint8))
             elif filter == "blowin":
-                frame[y:y+h, x:x+w] = cv2.erode(face_region, np.ones((17, 17), dtype=np.uint8))
+                frame[y:y+h, x:x +
+                      w] = cv2.erode(face_region, np.ones((17, 17), dtype=np.uint8))
 
-    if(filter == "canny"):
+    if (filter == "canny"):
         edges = cv2.Canny(frame, threshold1=50, threshold2=150)
-        rgb = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB) # RGB for matplotlib, BGR for imshow() !
-        # step 2: now all edges are white (255,255,255). to make it red, multiply with another array:
-        rgb *= np.array((0,1, 0),np.uint8)
-        
-        frame = rgb
-    elif filter == "invert":
-        frame =  cv2.bitwise_not(frame)
 
-    
-    cv2.putText(frame, f"Filter: {filter}", ((frame.shape[1]//2)-100, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2)
-    
+        edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+
+        # RGB for matplotlib, BGR for imshow() !
+        r = cv2.getTrackbarPos("r", "controls") / 255.0
+        g = cv2.getTrackbarPos("g", "controls") / 255.0
+        b = cv2.getTrackbarPos("b", "controls") / 255.0
+
+        # Create a white image with the same shape as edges
+        white = np.ones_like(edges_bgr, dtype=np.float64) * 255
+
+        # Set the color channels based on trackbar values
+        white[:, :, 0] *= b  # Blue channel
+        white[:, :, 1] *= g  # Green channel
+        white[:, :, 2] *= r  # Red channel
+
+        # Convert white to uint8 before blending with edges
+        white_uint8 = white.astype(np.uint8)
+
+        # Blend the white image with the edges using bitwise AND
+        colored_edges = cv2.bitwise_and(white_uint8, edges_bgr)
+
+        # Optionally, you can convert the image to BGR or RGB format for display
+        frame = colored_edges
+
+    elif filter == "invert":
+        frame = cv2.bitwise_not(frame)
+
+    cv2.putText(frame, f"Filter: {filter}", ((
+        frame.shape[1]//2)-100, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), 2)
+
     y0 = frame.shape[0] - 300
     for i, line in enumerate(options.split('\n')):
         y = y0 + (30 * i)
-        cv2.putText(frame, line, (50, y), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 0), 2)
+        cv2.putText(frame, line, (50, y),
+                    cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 0), 2)
 
     cv2.imshow('Video', frame)
 
     key = cv2.waitKey(1) & 0xFF
-    
-    
-    if(key == ord("q")):
+
+    if (key == ord("q")):
         break
     elif key == ord("a"):
         filter = "blur"
@@ -78,8 +121,8 @@ while True:
     elif key == ord("j"):
         detect = not detect
     elif key == ord("l"):
-        filter =  "none"
-    
+        filter = "none"
+
 
 video_capture.release()
 cv2.destroyAllWindows()
