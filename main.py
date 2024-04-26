@@ -10,12 +10,10 @@ video_capture = cv2.VideoCapture("teste_face_only.mp4")
 filter = "none"
 detect = True
 
-options = "A - Blur\n S - Color\nD- Canny\n F - Blow Out\nG - Blow In\n H - Invert\nJ - Detection On/Off\n Q - Quit\nL - Reset Filters"
-
+options = "A - Blur\n S - Color\nD- Canny\n F - Blow Out\nG - Blow In\n H - Invert\n J - Contornos \n K - Detection On/Off\n Q - Quit\nL - Reset Filters"
 
 def nothing(inp):
     pass
-
 
 cv2.namedWindow("controls")
 
@@ -27,11 +25,9 @@ cv2.createTrackbar("g", "controls", 0, 1, nothing)
 cv2.setTrackbarMax("g", "controls", 255)
 cv2.setTrackbarMin("g", "controls", 0)
 
-
 cv2.createTrackbar("b", "controls", 0, 1, nothing)
 cv2.setTrackbarMax("b", "controls", 255)
 cv2.setTrackbarMin("b", "controls", 0)
-
 
 while True:
     ret, frame = video_capture.read()
@@ -45,7 +41,6 @@ while True:
 
         for (x, y, w, h) in faces:
             face_region = frame[y:y+h, x:x+w]
-
             if filter == "blur":
                 frame[y:y+h, x:x +
                       w] = cv2.GaussianBlur(frame[y:y+h, x:x+w], (63, 63), 0)
@@ -54,6 +49,21 @@ while True:
                 # Modify the HSV values as per your desired color
                 colored_face[:, :, 0] += random.randint(0, 180)
                 frame[y:y+h, x:x+w] = colored_face
+            elif filter == "contornos":
+                r = cv2.getTrackbarPos("r", "controls")
+                g = cv2.getTrackbarPos("g", "controls")
+                b = cv2.getTrackbarPos("b", "controls")
+
+                # Convert the image to grayscale
+                gray = cv2.cvtColor(face_region, cv2.COLOR_BGR2GRAY)
+
+                # Threshold the grayscale image
+                _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+
+                # Find contours in the thresholded image
+                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.drawContours(face_region, contours, -1, (b,g,r), thickness=2)
+                frame[y:y+h, x:x + w] = face_region
             elif filter == "blowout":
                 frame[y:y+h, x:x +
                       w] = cv2.dilate(face_region, np.ones((17, 17), dtype=np.uint8))
@@ -102,6 +112,7 @@ while True:
 
     cv2.imshow('Video', frame)
 
+    # Key mapping
     key = cv2.waitKey(1) & 0xFF
 
     if (key == ord("q")):
@@ -119,10 +130,12 @@ while True:
     elif key == ord("h"):
         filter = "invert"
     elif key == ord("j"):
+        filter = "contornos"
+    elif key == ord("k"):
         detect = not detect
     elif key == ord("l"):
         filter = "none"
-
+    
 
 video_capture.release()
 cv2.destroyAllWindows()
