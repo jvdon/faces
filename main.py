@@ -5,7 +5,8 @@ import numpy as np
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-video_capture = cv2.VideoCapture("teste_face_only.mp4")
+video_capture = cv2.VideoCapture("pedestres.mp4")
+# video_capture = cv2.VideoCapture(0)
 
 filter = "none"
 detect = True
@@ -32,7 +33,9 @@ cv2.setTrackbarMin("b", "controls", 0)
 while True:
     ret, frame = video_capture.read()
     if not ret:
+        print("Error opening video")
         break
+
     if (detect):
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -54,13 +57,10 @@ while True:
                 g = cv2.getTrackbarPos("g", "controls")
                 b = cv2.getTrackbarPos("b", "controls")
 
-                # Convert the image to grayscale
                 gray = cv2.cvtColor(face_region, cv2.COLOR_BGR2GRAY)
 
-                # Threshold the grayscale image
                 _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
 
-                # Find contours in the thresholded image
                 contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 cv2.drawContours(face_region, contours, -1, (b,g,r), thickness=2)
                 frame[y:y+h, x:x + w] = face_region
@@ -76,26 +76,20 @@ while True:
 
         edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
-        # RGB for matplotlib, BGR for imshow() !
         r = cv2.getTrackbarPos("r", "controls") / 255.0
         g = cv2.getTrackbarPos("g", "controls") / 255.0
         b = cv2.getTrackbarPos("b", "controls") / 255.0
 
-        # Create a white image with the same shape as edges
         white = np.ones_like(edges_bgr, dtype=np.float64) * 255
 
-        # Set the color channels based on trackbar values
         white[:, :, 0] *= b  # Blue channel
         white[:, :, 1] *= g  # Green channel
         white[:, :, 2] *= r  # Red channel
 
-        # Convert white to uint8 before blending with edges
         white_uint8 = white.astype(np.uint8)
 
-        # Blend the white image with the edges using bitwise AND
         colored_edges = cv2.bitwise_and(white_uint8, edges_bgr)
 
-        # Optionally, you can convert the image to BGR or RGB format for display
         frame = colored_edges
 
     elif filter == "invert":
